@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>File Upload Tool</title>
+  <style>
+    /* Previous styles remain the same */
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #f4f4f9;
+      color: #333;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    h1 {
+      color: #4a90e2;
+      margin-bottom: 20px;
+    }
+    #storage-info {
+      background: #fff;
+      padding: 10px 20px;
+      border-radius: 5px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+    #storage-bar {
+      width: 200px;
+      height: 20px;
+      background: #eee;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-top: 5px;
+    }
+    #storage-used {
+      height: 100%;
+      background: #4a90e2;
+      transition: width 0.3s ease;
+    }
+    #file-input { margin-bottom: 10px; }
+    #upload-btn {
+      background-color: #4a90e2;
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      font-size: 16px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    #upload-btn:hover { background-color: #357abd; }
+    #file-list {
+      margin-top: 20px;
+      width: 100%;
+      max-width: 600px;
+      background: #fff;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      border-radius: 10px;
+      padding: 20px;
+    }
+    .file-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+    }
+    .file-item:last-child { border-bottom: none; }
+    .file-item span {
+      flex: 1;
+      color: #555;
+      word-break: break-word;
+    }
+    button {
+      background-color: #e94e77;
+      color: #fff;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background-color 0.3s;
+    }
+    button:hover { background-color: #d74368; }
+    button.download { background-color: #4caf50; }
+    button.download:hover { background-color: #3e8e41; }
+  </style>
+</head>
+<body>
+  <h1>Text/Logs File Upload Tool</h1>
+  <div id="storage-info">
+    <div>Storage Usage: <span id="usage-text">0 MB / 5 MB</span></div>
+    <div id="storage-bar">
+      <div id="storage-used" style="width: 0%"></div>
+    </div>
+  </div>
+  <input type="file" id="file-input" accept=".txt" />
+  <button id="upload-btn">Upload</button>
+  <div id="file-list"></div>
+
+  <script>
+    const fileInput = document.getElementById('file-input');
+    const uploadBtn = document.getElementById('upload-btn');
+    const fileListDiv = document.getElementById('file-list');
+    const storageUsed = document.getElementById('storage-used');
+    const usageText = document.getElementById('usage-text');
+    
+    const STORAGE_LIMIT = 5 * 1024 * 1024;
+    const storedFiles = JSON.parse(localStorage.getItem('uploadedFiles')) || [];
+
+    function updateStorageInfo() {
+      const currentUsage = new Blob([JSON.stringify(storedFiles)]).size;
+      const usagePercent = (currentUsage / STORAGE_LIMIT) * 100;
+      const usageMB = (currentUsage / (1024 * 1024)).toFixed(2);
+      
+      storageUsed.style.width = `${usagePercent}%`;
+      usageText.textContent = `${usageMB} MB / 5 MB`;
+      
+      return currentUsage;
+    }
+
+    function renderFileList() {
+      fileListDiv.innerHTML = '';
+      storedFiles.forEach((file, index) => {
+        const fileItem = document.createElement('div');
+        fileItem.className = 'file-item';
+
+        const fileName = document.createElement('span');
+        fileName.textContent = file.name;
+
+        const downloadBtn = document.createElement('button');
+        downloadBtn.className = 'download';
+        downloadBtn.textContent = 'Download';
+        downloadBtn.onclick = () => {
+          const a = document.createElement('a');
+          a.href = file.url;
+          a.download = file.name;
+          a.click();
+        };
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.textContent = 'Delete';
+        deleteBtn.onclick = () => {
+          storedFiles.splice(index, 1);
+          try {
+            localStorage.setItem('uploadedFiles', JSON.stringify(storedFiles));
+            renderFileList();
+            updateStorageInfo();
+          } catch (e) {
+            alert('Error deleting file: ' + e.message);
+          }
+        };
+
+        fileItem.appendChild(fileName);
+        fileItem.appendChild(downloadBtn);
+        fileItem.appendChild(deleteBtn);
+        fileListDiv.appendChild(fileItem);
+      });
+    }
+
+    uploadBtn.onclick = () => {
+      const file = fileInput.files[0];
+      if (!file) {
+        alert('Please select a file to upload.');
+        return;
+      }
+
+      if (!file.name.toLowerCase().endsWith('.txt')) {
+        alert('Only .txt files are allowed.');
+        fileInput.value = '';
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const newFile = { name: file.name, url: event.target.result };
+        
+        const newStorageSize = new Blob([JSON.stringify([...storedFiles, newFile])]).size;
+        if (newStorageSize > STORAGE_LIMIT) {
+          alert('Storage quota would be exceeded. Please delete some files first.');
+          return;
+        }
+
+        try {
+          storedFiles.push(newFile);
+          localStorage.setItem('uploadedFiles', JSON.stringify(storedFiles));
+          renderFileList();
+          updateStorageInfo();
+          fileInput.value = '';
+        } catch (e) {
+          alert('Error uploading file: ' + e.message);
+        }
+      };
+      reader.readAsDataURL(file);
+    };
+
+    renderFileList();
+    updateStorageInfo();
+  </script>
+</body>
+</html>
