@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>File Upload Tool</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #f4f4f9;
+      color: #333;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    h1 {
+      color: #4a90e2;
+      margin-bottom: 20px;
+    }
+    #file-input {
+      margin-bottom: 10px;
+    }
+    #upload-btn {
+      background-color: #4a90e2;
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      font-size: 16px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    #upload-btn:hover {
+      background-color: #357abd;
+    }
+    #file-list {
+      margin-top: 20px;
+      width: 100%;
+      max-width: 600px;
+      background: #fff;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      border-radius: 10px;
+      padding: 20px;
+    }
+    .file-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+    }
+    .file-item:last-child {
+      border-bottom: none;
+    }
+    .file-item span {
+      flex: 1;
+      color: #555;
+      word-break: break-word;
+    }
+    button {
+      background-color: #e94e77;
+      color: #fff;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background-color 0.3s;
+    }
+    button:hover {
+      background-color: #d74368;
+    }
+    button.download {
+      background-color: #4caf50;
+    }
+    button.download:hover {
+      background-color: #3e8e41;
+    }
+    @media (max-width: 600px) {
+      #file-list {
+        padding: 15px;
+      }
+      button {
+        padding: 5px 8px;
+        font-size: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>File Upload Tool</h1>
+  <input type="file" id="file-input" />
+  <button id="upload-btn">Upload</button>
+  <div id="file-list"></div>
+
+  <script>
+    const fileInput = document.getElementById('file-input');
+    const uploadBtn = document.getElementById('upload-btn');
+    const fileListDiv = document.getElementById('file-list');
+
+    // Load existing files from localStorage
+    const storedFiles = JSON.parse(localStorage.getItem('uploadedFiles')) || [];
+
+    // Function to render the file list
+    function renderFileList() {
+      fileListDiv.innerHTML = '';
+      storedFiles.forEach((file, index) => {
+        const fileItem = document.createElement('div');
+        fileItem.className = 'file-item';
+
+        const fileName = document.createElement('span');
+        fileName.textContent = file.name;
+
+        const downloadBtn = document.createElement('button');
+        downloadBtn.className = 'download';
+        downloadBtn.textContent = 'Download';
+        downloadBtn.onclick = () => {
+          const a = document.createElement('a');
+          a.href = file.url;
+          a.download = file.name;
+          a.click();
+        };
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.textContent = 'Delete';
+        deleteBtn.onclick = () => {
+          storedFiles.splice(index, 1);
+          localStorage.setItem('uploadedFiles', JSON.stringify(storedFiles));
+          renderFileList();
+        };
+
+        fileItem.appendChild(fileName);
+        fileItem.appendChild(downloadBtn);
+        fileItem.appendChild(deleteBtn);
+        fileListDiv.appendChild(fileItem);
+      });
+    }
+
+    // Handle file upload
+    uploadBtn.onclick = () => {
+      const file = fileInput.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          storedFiles.push({ name: file.name, url: event.target.result });
+          localStorage.setItem('uploadedFiles', JSON.stringify(storedFiles));
+          renderFileList();
+        };
+        reader.readAsDataURL(file);
+        fileInput.value = '';
+      } else {
+        alert('Please select a file to upload.');
+      }
+    };
+
+    // Initial render
+    renderFileList();
+  </script>
+</body>
+</html>
+
+
